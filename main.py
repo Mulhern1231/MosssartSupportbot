@@ -18,13 +18,19 @@ def start(update: Update, context):
     update.message.reply_text(welcome_message)
 
 
-def forward_to_admins(update, user_id, user_name):
-    # Пересылка сообщений и медиа админам
+def forward_to_admins(update, context, user_id, user_name):
+    # Создаем кнопку для ответа
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("Ответить", callback_data=f"answer-{user_id}")]
+    ])
+    
     for admin_id in ADMINS:
         if update.message.text:
-            context.bot.send_message(admin_id, f"Вопрос от {user_name} (ID: {user_id}):\n{update.message.text}")
+            context.bot.send_message(admin_id, f"Вопрос от {user_name} (ID: {user_id}):\n{update.message.text}", reply_markup=keyboard)
         else:
             context.bot.forward_message(admin_id, update.message.chat.id, update.message.message_id)
+            context.bot.send_message(admin_id, f"Медиа от {user_name} (ID: {user_id}). Нажмите кнопку ниже, чтобы ответить:", reply_markup=keyboard)
+
 
 def handle_message(update: Update, context):
     user_id = update.message.from_user.id
@@ -34,13 +40,18 @@ def handle_message(update: Update, context):
     if user_id in ADMINS and user_id in pending_answers:
         user_id_to_reply = pending_answers[user_id]
         if update.message.text:
-            context.bot.send_message(user_id_to_reply, f"Ответ от администрации: {update.message.text}")
+            context.bot.send_message(user_id_to_reply, f"{update.message.text}")
         else:
             context.bot.forward_message(user_id_to_reply, update.message.chat.id, update.message.message_id)
         update.message.reply_text("Ответ отправлен.")
         del pending_answers[user_id]
+    # Если это новый вопрос от админа
+    elif user_id in ADMINS:
+        update.message.reply_text("Вы отправили сообщение без указания получателя. Если вы хотите ответить на вопрос, используйте кнопку 'Ответить'.")
     else:
-        forward_to_admins(update, user_id, user_name)
+        forward_to_admins(update, context, user_id, user_name)
+
+
 
 def handle_callback(update: Update, context):
     query = update.callback_query
