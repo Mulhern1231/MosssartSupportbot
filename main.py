@@ -59,6 +59,9 @@ def handle_callback(update: Update, context):
         user_id = int(query.data.split("-")[1])
         admin_name = query.from_user.first_name or "Админ"
         
+        # Удаляем кнопку "Ответить" для всех админов
+        query.edit_message_reply_markup(reply_markup=None)
+        
         # Уведомляем других админов
         for admin_id in ADMINS:
             if admin_id != query.from_user.id:
@@ -66,6 +69,7 @@ def handle_callback(update: Update, context):
         
         pending_answers[query.from_user.id] = user_id
         query.message.reply_text("Введите ваш ответ:")
+
 
 def add_admin(update: Update, context):
     admin_id = update.message.from_user.id
